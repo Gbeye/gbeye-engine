@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gbeye Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0d1117;
+      --surface:   #161b22;
+      --surface2:  #1f2937;
+      --border:    #30363d;
+      --text:      #e6edf3;
+      --muted:     #8b949e;
+      --accent:    #58a6ff;
+      --green:     #3fb950;
+      --red:       #f85149;
+      --yellow:    #e3b341;
+      --purple:    #bc8cff;
+      --radius:    10px;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      font-size: 14px;
+      min-height: 100vh;
+    }
+
+    /* ── Header ─────────────────────────────────── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 28px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+    }
+
+    .logo-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 8px var(--accent);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.4; }
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    #app-label {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    #refresh-btn {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 6px;
+      padding: 6px 14px;
+      cursor: pointer;
+      font-size: 13px;
+      transition: background 0.15s;
+    }
+    #refresh-btn:hover { background: var(--border); }
+
+    /* ── Auth gate ───────────────────────────────── */
+    #auth-gate {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: calc(100vh - 57px);
+      padding: 24px;
+    }
+
+    .auth-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 40px 36px;
+      width: 100%;
+      max-width: 440px;
+      text-align: center;
+    }
+
+    .auth-card h2 {
+      font-size: 20px;
+      margin-bottom: 8px;
+    }
+
+    .auth-card p {
+      color: var(--muted);
+      margin-bottom: 28px;
+      line-height: 1.6;
+    }
+
+    .auth-card input {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-size: 14px;
+      padding: 10px 14px;
+      margin-bottom: 14px;
+      outline: none;
+      font-family: monospace;
+      transition: border-color 0.15s;
+    }
+
+    .auth-card input:focus { border-color: var(--accent); }
+
+    .auth-card button {
+      width: 100%;
+      background: var(--accent);
+      border: none;
+      border-radius: 6px;
+      color: #0d1117;
+      font-size: 14px;
+      font-weight: 600;
+      padding: 10px;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+    .auth-card button:hover { opacity: 0.85; }
+
+    #auth-error {
+      margin-top: 14px;
+      color: var(--red);
+      font-size: 13px;
+      min-height: 20px;
+    }
+
+    /* ── Main content ────────────────────────────── */
+    #dashboard { display: none; padding: 24px 28px; }
+
+    /* ── Stat cards ──────────────────────────────── */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 14px;
+      margin-bottom: 24px;
+    }
+
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px 20px;
+    }
+
+    .stat-label {
+      font-size: 12px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      margin-bottom: 8px;
+    }
+
+    .stat-value {
+      font-size: 30px;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .stat-value.accent  { color: var(--accent); }
+    .stat-value.green   { color: var(--green); }
+    .stat-value.red     { color: var(--red); }
+    .stat-value.yellow  { color: var(--yellow); }
+
+    /* ── Charts row ──────────────────────────────── */
+    .charts-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-bottom: 24px;
+    }
+
+    @media (max-width: 780px) {
+      .charts-grid { grid-template-columns: 1fr; }
+    }
+
+    .chart-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px 20px;
+    }
+
+    .chart-card h3 {
+      font-size: 13px;
+      color: var(--muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      margin-bottom: 16px;
+    }
+
+    .chart-wrap {
+      position: relative;
+      height: 220px;
+    }
+
+    /* ── Event feed ──────────────────────────────── */
+    .feed-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      margin-bottom: 24px;
+    }
+
+    .feed-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+
+    .feed-header h3 {
+      font-size: 13px;
+      color: var(--muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+    }
+
+    .feed-filters {
+      display: flex;
+      gap: 8px;
+    }
+
+    .feed-filters select,
+    .feed-filters input {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-size: 12px;
+      padding: 5px 9px;
+      outline: none;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    thead th {
+      text-align: left;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 0 10px 10px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    tbody tr {
+      border-bottom: 1px solid var(--border);
+      transition: background 0.1s;
+    }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: var(--surface2); }
+
+    tbody td {
+      padding: 10px;
+      vertical-align: middle;
+    }
+
+    .td-id {
+      font-family: monospace;
+      color: var(--muted);
+      font-size: 11px;
+      max-width: 100px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .badge {
+      display: inline-block;
+      border-radius: 4px;
+      padding: 2px 8px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .badge-received { background: rgba(88,166,255,0.15); color: var(--accent); }
+    .badge-failed   { background: rgba(248,81,73,0.15);  color: var(--red); }
+    .badge-default  { background: rgba(139,148,158,0.15); color: var(--muted); }
+
+    .td-type { color: var(--yellow); font-family: monospace; font-size: 12px; }
+
+    .td-time { color: var(--muted); font-size: 12px; white-space: nowrap; }
+
+    .empty-state {
+      text-align: center;
+      color: var(--muted);
+      padding: 40px;
+    }
+
+    /* ── Loading spinner ─────────────────────────── */
+    .spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      vertical-align: middle;
+      margin-right: 6px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    #loading-msg {
+      text-align: center;
+      padding: 60px;
+      color: var(--muted);
+    }
+
+    .last-refresh {
+      font-size: 11px;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-dot"></div>
+    Gbeye
+  </div>
+  <div class="header-right">
+    <span id="app-label"></span>
+    <span class="last-refresh" id="last-refresh"></span>
+    <button id="refresh-btn" style="display:none" onclick="loadData()">↻ Refresh</button>
+  </div>
+</header>
+
+<!-- Auth gate -->
+<div id="auth-gate">
+  <div class="auth-card">
+    <h2>Event Dashboard</h2>
+    <p>Enter your API key to view event analytics for your registered app.</p>
+    <input id="api-key-input" type="text" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" autocomplete="off" />
+    <button onclick="authenticate()">View Dashboard</button>
+    <div id="auth-error"></div>
+  </div>
+</div>
+
+<!-- Dashboard -->
+<div id="dashboard">
+  <div id="loading-msg"><span class="spinner"></span> Loading events…</div>
+
+  <div id="dash-content" style="display:none">
+    <!-- Stat cards -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">Total Events</div>
+        <div class="stat-value accent" id="stat-total">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Unique Types</div>
+        <div class="stat-value yellow" id="stat-types">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Received</div>
+        <div class="stat-value green" id="stat-received">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Failed</div>
+        <div class="stat-value red" id="stat-failed">—</div>
+      </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="charts-grid">
+      <div class="chart-card">
+        <h3>Events by Type</h3>
+        <div class="chart-wrap"><canvas id="type-chart"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <h3>Events Over Time (last 14 days)</h3>
+        <div class="chart-wrap"><canvas id="time-chart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Live feed -->
+    <div class="feed-card">
+      <div class="feed-header">
+        <h3>Live Event Feed</h3>
+        <div class="feed-filters">
+          <select id="filter-status" onchange="applyFilters()">
+            <option value="">All statuses</option>
+            <option value="received">received</option>
+            <option value="failed">failed</option>
+          </select>
+          <input id="filter-type" type="text" placeholder="Filter by type…" oninput="applyFilters()" />
+        </div>
+      </div>
+      <div id="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Type</th>
+              <th>Status</th>
+              <th>Timestamp</th>
+              <th>Payload</th>
+            </tr>
+          </thead>
+          <tbody id="event-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  let API_KEY = '';
+  let allEvents = [];
+  let typeChart = null;
+  let timeChart = null;
+  const PALETTE = [
+    '#58a6ff','#3fb950','#e3b341','#bc8cff','#f85149',
+    '#79c0ff','#56d364','#ffa657','#d2a8ff','#ff7b72',
+  ];
+
+  // ── Auth ───────────────────────────────────────────────────
+  document.getElementById('api-key-input').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') authenticate();
+  });
+
+  async function authenticate() {
+    const key = document.getElementById('api-key-input').value.trim();
+    if (!key) return;
+    document.getElementById('auth-error').textContent = '';
+
+    try {
+      const res = await fetch('/apps/verify', { headers: { 'api-key': key } });
+      const data = await res.json();
+      if (!res.ok || !data.verified) {
+        document.getElementById('auth-error').textContent = data.message || 'Invalid API key.';
+        return;
+      }
+      API_KEY = key;
+      document.getElementById('app-label').textContent = data.app_name;
+      document.getElementById('auth-gate').style.display = 'none';
+      document.getElementById('dashboard').style.display = 'block';
+      document.getElementById('refresh-btn').style.display = '';
+      await loadData();
+    } catch {
+      document.getElementById('auth-error').textContent = 'Could not reach server.';
+    }
+  }
+
+  // ── Load data ──────────────────────────────────────────────
+  async function loadData() {
+    document.getElementById('loading-msg').style.display = 'block';
+    document.getElementById('dash-content').style.display = 'none';
+    try {
+      const res = await fetch('/events/app/all?limit=200', { headers: { 'api-key': API_KEY } });
+      const data = await res.json();
+      allEvents = data.events || [];
+      renderAll(allEvents);
+      document.getElementById('last-refresh').textContent =
+        'Updated ' + new Date().toLocaleTimeString();
+    } catch {
+      document.getElementById('loading-msg').innerHTML = '<span style="color:var(--red)">Failed to load events.</span>';
+      return;
+    }
+    document.getElementById('loading-msg').style.display = 'none';
+    document.getElementById('dash-content').style.display = 'block';
+  }
+
+  // ── Render all ─────────────────────────────────────────────
+  function renderAll(events) {
+    renderStats(events);
+    renderTypeChart(events);
+    renderTimeChart(events);
+    renderTable(events);
+  }
+
+  // ── Stats ──────────────────────────────────────────────────
+  function renderStats(events) {
+    const types = new Set(events.map(e => e.event_type));
+    const received = events.filter(e => e.status === 'received').length;
+    const failed = events.filter(e => e.status === 'failed').length;
+    document.getElementById('stat-total').textContent = events.length;
+    document.getElementById('stat-types').textContent = types.size;
+    document.getElementById('stat-received').textContent = received;
+    document.getElementById('stat-failed').textContent = failed;
+  }
+
+  // ── Events by type chart ───────────────────────────────────
+  function renderTypeChart(events) {
+    const counts = {};
+    for (const e of events) counts[e.event_type] = (counts[e.event_type] || 0) + 1;
+    const labels = Object.keys(counts);
+    const data   = Object.values(counts);
+
+    if (typeChart) typeChart.destroy();
+
+    const ctx = document.getElementById('type-chart').getContext('2d');
+    typeChart = new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels,
+        datasets: [{
+          data,
+          backgroundColor: PALETTE.slice(0, labels.length),
+          borderColor: '#161b22',
+          borderWidth: 3,
+          hoverOffset: 6,
+        }],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'right',
+            labels: { color: '#8b949e', font: { size: 12 }, padding: 14, boxWidth: 12 },
+          },
+          tooltip: { callbacks: { label: (c) => ` ${c.label}: ${c.parsed}` } },
+        },
+        cutout: '65%',
+      },
+    });
+  }
+
+  // ── Events over time chart ─────────────────────────────────
+  function renderTimeChart(events) {
+    const days = 14;
+    const buckets = {};
+    for (let i = days - 1; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      buckets[d.toISOString().slice(0, 10)] = 0;
+    }
+    for (const e of events) {
+      const day = e.timestamp ? e.timestamp.slice(0, 10) : null;
+      if (day && day in buckets) buckets[day]++;
+    }
+    const labels = Object.keys(buckets).map(d => {
+      const [, m, dd] = d.split('-');
+      return `${m}/${dd}`;
+    });
+    const data = Object.values(buckets);
+
+    if (timeChart) timeChart.destroy();
+
+    const ctx = document.getElementById('time-chart').getContext('2d');
+    const gradient = ctx.createLinearGradient(0, 0, 0, 220);
+    gradient.addColorStop(0, 'rgba(88,166,255,0.3)');
+    gradient.addColorStop(1, 'rgba(88,166,255,0)');
+
+    timeChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [{
+          label: 'Events',
+          data,
+          borderColor: '#58a6ff',
+          backgroundColor: gradient,
+          borderWidth: 2,
+          pointRadius: 3,
+          pointBackgroundColor: '#58a6ff',
+          tension: 0.35,
+          fill: true,
+        }],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: {
+            ticks: { color: '#8b949e', font: { size: 11 }, maxTicksLimit: 7 },
+            grid: { color: '#21262d' },
+          },
+          y: {
+            beginAtZero: true,
+            ticks: { color: '#8b949e', font: { size: 11 }, precision: 0 },
+            grid: { color: '#21262d' },
+          },
+        },
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: (c) => ` ${c.parsed.y} event${c.parsed.y !== 1 ? 's' : ''}` } },
+        },
+      },
+    });
+  }
+
+  // ── Table ──────────────────────────────────────────────────
+  function renderTable(events) {
+    const tbody = document.getElementById('event-tbody');
+    if (!events.length) {
+      tbody.innerHTML = `<tr><td colspan="5" class="empty-state">No events found.</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = events.map(e => `
+      <tr>
+        <td class="td-id" title="${e.id}">${e.id.slice(0, 8)}…</td>
+        <td class="td-type">${escHtml(e.event_type)}</td>
+        <td>${statusBadge(e.status)}</td>
+        <td class="td-time">${fmtTime(e.timestamp)}</td>
+        <td style="color:var(--muted);font-family:monospace;font-size:11px;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title='${escHtml(JSON.stringify(e.payload))}'>
+          ${escHtml(JSON.stringify(e.payload))}
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  // ── Filters ────────────────────────────────────────────────
+  function applyFilters() {
+    const status = document.getElementById('filter-status').value;
+    const type   = document.getElementById('filter-type').value.trim().toLowerCase();
+    const filtered = allEvents.filter(e => {
+      if (status && e.status !== status) return false;
+      if (type && !e.event_type.toLowerCase().includes(type)) return false;
+      return true;
+    });
+    renderTable(filtered);
+  }
+
+  // ── Helpers ────────────────────────────────────────────────
+  function statusBadge(status) {
+    const cls = status === 'received' ? 'badge-received'
+              : status === 'failed'   ? 'badge-failed'
+              : 'badge-default';
+    return `<span class="badge ${cls}">${escHtml(status)}</span>`;
+  }
+
+  function fmtTime(ts) {
+    if (!ts) return '—';
+    const d = new Date(ts);
+    return d.toLocaleDateString() + ' ' + d.toLocaleTimeString();
+  }
+
+  function escHtml(str) {
+    return String(str ?? '')
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+</script>
+</body>
+</html>
