@@ -427,6 +427,7 @@
             <option value="failed">failed</option>
           </select>
           <input id="filter-type" type="text" placeholder="Filter by type…" oninput="applyFilters()" />
+          <input id="filter-actor" type="text" placeholder="Filter by actor…" oninput="applyFilters()" />
         </div>
       </div>
       <div id="table-wrap">
@@ -648,9 +649,11 @@
   function applyFilters() {
     const status = document.getElementById('filter-status').value;
     const type   = document.getElementById('filter-type').value.trim().toLowerCase();
+    const actor  = document.getElementById('filter-actor').value.trim().toLowerCase();
     const filtered = allEvents.filter(e => {
       if (status && e.status !== status) return false;
       if (type && !e.event_type.toLowerCase().includes(type)) return false;
+      if (actor && !(e.actor_id ?? '').toLowerCase().includes(actor)) return false;
       return true;
     });
     renderTable(filtered);
