@@ -27,6 +27,7 @@ export async function eventsRoutes(fastify) {
         properties: {
           event_type: { type: 'string', minLength: 1 },
           payload: {},
+          actor_id: { type: 'string' },
         },
       },
     },
@@ -37,14 +38,14 @@ export async function eventsRoutes(fastify) {
     const app = await resolveApp(api_key);
     if (!app) return reply.code(401).send({ error: 'Invalid API key.' });
 
-    const { event_type, payload } = request.body;
+    const { event_type, payload, actor_id = null } = request.body;
     const signature = signPayload(payload);
 
     const result = await query(
-      `INSERT INTO events (app_id, event_type, payload, signature, status)
-       VALUES ($1, $2, $3, $4, 'received')
-       RETURNING id, event_type, status, created_at`,
-      [app.id, event_type, JSON.stringify(payload), signature]
+      `INSERT INTO events (app_id, event_type, payload, signature, status, actor_id)
+       VALUES ($1, $2, $3, $4, 'received', $5)
+       RETURNING id, event_type, status, actor_id, created_at`,
+      [app.id, event_type, JSON.stringify(payload), signature, actor_id]
     );
 
     const event = result.rows[0];
@@ -52,6 +53,7 @@ export async function eventsRoutes(fastify) {
     return reply.code(201).send({
       id: event.id,
       event_type: event.event_type,
+      actor_id: event.actor_id,
       signature,
       status: event.status,
       timestamp: event.created_at,
@@ -65,7 +67,7 @@ export async function eventsRoutes(fastify) {
     const app = await resolveApp(api_key);
     if (!app) return reply.code(401).send({ error: 'Invalid API key.' });
 
-    const { status, event_type, from_date } = request.query;
+    const { status, event_type, from_date, actor_id } = request.query;
     let limit = parseInt(request.query.limit ?? '50', 10);
     if (isNaN(limit) || limit < 1) limit = 50;
     if (limit > 200) limit = 200;
@@ -85,12 +87,16 @@ export async function eventsRoutes(fastify) {
       params.push(from_date);
       conditions.push(`created_at >= $${params.length}`);
     }
+    if (actor_id) {
+      params.push(actor_id);
+      conditions.push(`actor_id = $${params.length}`);
+    }
 
     params.push(limit);
     const limitPlaceholder = `$${params.length}`;
 
     const sql = `
-      SELECT id, event_type, payload, signature, status, created_at
+      SELECT id, event_type, payload, signature, status, actor_id, created_at
       FROM events
       WHERE ${conditions.join(' AND ')}
       ORDER BY created_at DESC
@@ -105,6 +111,7 @@ export async function eventsRoutes(fastify) {
       events: result.rows.map((e) => ({
         id: e.id,
         event_type: e.event_type,
+        actor_id: e.actor_id,
         payload: e.payload,
         signature: e.signature,
         status: e.status,
@@ -123,7 +130,7 @@ export async function eventsRoutes(fastify) {
     const { id } = request.params;
 
     const result = await query(
-      `SELECT id, app_id, event_type, payload, signature, status, created_at
+      `SELECT id, app_id, event_type, payload, signature, status, actor_id, created_at
        FROM events
        WHERE id = $1 AND app_id = $2`,
       [id, app.id]
@@ -139,6 +146,7 @@ export async function eventsRoutes(fastify) {
       id: event.id,
       app_id: event.app_id,
       event_type: event.event_type,
+      actor_id: event.actor_id,
       payload: event.payload,
       signature: event.signature,
       status: event.status,
