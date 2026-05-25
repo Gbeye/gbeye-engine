@@ -27,6 +27,10 @@ export async function runMigrations() {
   `);
 
   await query(`
+    ALTER TABLE events ADD COLUMN IF NOT EXISTS actor_id VARCHAR(255)
+  `);
+
+  await query(`
     CREATE TABLE IF NOT EXISTS event_types (
       id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
       app_id      UUID NOT NULL REFERENCES apps(id) ON DELETE CASCADE,
