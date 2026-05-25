@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gbeye — Event Trust Infrastructure</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #080c12;
+      --surface:   #0f1520;
+      --surface2:  #161e2e;
+      --border:    #1e2d42;
+      --border2:   #253550;
+      --text:      #e8eef6;
+      --muted:     #6b7f9e;
+      --accent:    #4f8ef7;
+      --accent2:   #3a6fd8;
+      --glow:      rgba(79,142,247,0.18);
+      --green:     #34d058;
+      --yellow:    #f0c040;
+      --radius:    12px;
+      --font:      -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 15px;
+      line-height: 1.6;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── Noise texture overlay ─────────────────── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.4;
+    }
+
+    /* ── Layout ────────────────────────────────── */
+    .wrap {
+      max-width: 880px;
+      margin: 0 auto;
+      padding: 0 28px;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ── Header ────────────────────────────────── */
+    header {
+      padding: 28px 0 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .brand {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .brand-name {
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 10px var(--accent);
+      animation: breathe 3s ease-in-out infinite;
+      flex-shrink: 0;
+    }
+
+    @keyframes breathe {
+      0%, 100% { opacity: 1; box-shadow: 0 0 10px var(--accent); }
+      50%       { opacity: 0.5; box-shadow: 0 0 4px var(--accent); }
+    }
+
+    .brand-tagline {
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      padding-left: 18px;
+    }
+
+    .nav-link {
+      font-size: 13px;
+      color: var(--muted);
+      text-decoration: none;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 7px 16px;
+      transition: color 0.2s, border-color 0.2s;
+    }
+    .nav-link:hover { color: var(--text); border-color: var(--border2); }
+
+    /* ── Hero ──────────────────────────────────── */
+    .hero {
+      padding: 100px 0 80px;
+      text-align: center;
+      position: relative;
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: 40px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 600px;
+      height: 300px;
+      background: radial-gradient(ellipse at center, rgba(79,142,247,0.08) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .hero-eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(79,142,247,0.08);
+      border: 1px solid rgba(79,142,247,0.2);
+      border-radius: 100px;
+      padding: 5px 14px;
+      font-size: 12px;
+      color: var(--accent);
+      letter-spacing: 0.5px;
+      margin-bottom: 32px;
+    }
+
+    .hero-eyebrow-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+    }
+
+    .hero h1 {
+      font-size: clamp(36px, 6vw, 58px);
+      font-weight: 800;
+      letter-spacing: -1.5px;
+      line-height: 1.12;
+      color: var(--text);
+      margin-bottom: 20px;
+      max-width: 700px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .hero h1 em {
+      font-style: normal;
+      background: linear-gradient(135deg, var(--accent) 0%, #8ab4ff 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero-sub {
+      font-size: 18px;
+      color: var(--muted);
+      letter-spacing: 0.5px;
+      margin-bottom: 48px;
+    }
+
+    .hero-cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--accent);
+      color: #fff;
+      font-size: 14px;
+      font-weight: 600;
+      border: none;
+      border-radius: 8px;
+      padding: 13px 28px;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background 0.2s, transform 0.15s;
+      box-shadow: 0 0 24px rgba(79,142,247,0.3);
+    }
+    .hero-cta:hover { background: var(--accent2); transform: translateY(-1px); }
+
+    .hero-cta svg { flex-shrink: 0; }
+
+    /* ── Section labels ────────────────────────── */
+    .section-label {
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 20px;
+    }
+
+    /* ── Divider ───────────────────────────────── */
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 0;
+    }
+
+    /* ── Accordion features ────────────────────── */
+    .features {
+      padding: 80px 0;
+    }
+
+    .features-header {
+      margin-bottom: 40px;
+    }
+
+    .features-header h2 {
+      font-size: 30px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      color: var(--text);
+    }
+
+    .accordion {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    .accordion-item {
+      border-bottom: 1px solid var(--border);
+    }
+    .accordion-item:last-child { border-bottom: none; }
+
+    .accordion-trigger {
+      width: 100%;
+      background: none;
+      border: none;
+      padding: 22px 26px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      transition: background 0.15s;
+      text-align: left;
+    }
+    .accordion-trigger:hover { background: var(--surface2); }
+    .accordion-item.open .accordion-trigger { background: var(--surface2); }
+
+    .accordion-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .accordion-icon {
+      width: 38px;
+      height: 38px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      font-size: 18px;
+      transition: transform 0.2s;
+    }
+    .accordion-item.open .accordion-icon { transform: scale(1.05); }
+
+    .icon-witness { background: rgba(79,142,247,0.12); }
+    .icon-sign    { background: rgba(52,208,88,0.10); }
+    .icon-remember{ background: rgba(240,192,64,0.10); }
+
+    .accordion-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .accordion-num {
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 1px;
+      margin-bottom: 2px;
+    }
+
+    .accordion-chevron {
+      color: var(--muted);
+      transition: transform 0.25s, color 0.2s;
+      flex-shrink: 0;
+    }
+    .accordion-item.open .accordion-chevron {
+      transform: rotate(180deg);
+      color: var(--accent);
+    }
+
+    .accordion-body {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .accordion-item.open .accordion-body { max-height: 300px; }
+
+    .accordion-content {
+      padding: 0 26px 26px 80px;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.7;
+    }
+
+    .accordion-content p { margin-bottom: 10px; }
+    .accordion-content p:last-child { margin-bottom: 0; }
+
+    .tag {
+      display: inline-block;
+      background: rgba(79,142,247,0.1);
+      border: 1px solid rgba(79,142,247,0.2);
+      color: var(--accent);
+      border-radius: 4px;
+      padding: 1px 8px;
+      font-size: 11px;
+      font-family: monospace;
+      letter-spacing: 0.5px;
+    }
+
+    /* ── Registration ──────────────────────────── */
+    .register {
+      padding: 80px 0 100px;
+    }
+
+    .register-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 48px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .register-card::before {
+      content: '';
+      position: absolute;
+      top: -80px;
+      right: -80px;
+      width: 260px;
+      height: 260px;
+      background: radial-gradient(circle, rgba(79,142,247,0.07) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .register-card h2 {
+      font-size: 26px;
+      font-weight: 700;
+      letter-spacing: -0.4px;
+      margin-bottom: 8px;
+    }
+
+    .register-card p {
+      color: var(--muted);
+      margin-bottom: 36px;
+      font-size: 14px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    @media (max-width: 600px) {
+      .form-grid { grid-template-columns: 1fr; }
+      .register-card { padding: 28px 22px; }
+      .accordion-content { padding-left: 26px; }
+      .hero { padding: 60px 0 50px; }
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+
+    .field label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    .field input {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 14px;
+      padding: 11px 14px;
+      outline: none;
+      width: 100%;
+      transition: border-color 0.15s, box-shadow 0.15s;
+      font-family: var(--font);
+    }
+    .field input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(79,142,247,0.12);
+    }
+    .field input::placeholder { color: #3a4d66; }
+
+    .field-full { grid-column: 1 / -1; }
+
+    .submit-btn {
+      width: 100%;
+      background: var(--accent);
+      border: none;
+      border-radius: 8px;
+      color: #fff;
+      font-size: 14px;
+      font-weight: 600;
+      padding: 13px;
+      cursor: pointer;
+      margin-top: 8px;
+      transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      box-shadow: 0 0 20px rgba(79,142,247,0.2);
+      font-family: var(--font);
+    }
+    .submit-btn:hover:not(:disabled) {
+      background: var(--accent2);
+      transform: translateY(-1px);
+      box-shadow: 0 0 28px rgba(79,142,247,0.35);
+    }
+    .submit-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    .spinner {
+      width: 15px;
+      height: 15px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.65s linear infinite;
+      display: none;
+    }
+    .submit-btn.loading .spinner { display: block; }
+    .submit-btn.loading .btn-text { display: none; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .form-error {
+      color: #f85149;
+      font-size: 13px;
+      margin-top: 10px;
+      min-height: 20px;
+      display: none;
+    }
+    .form-error.show { display: block; }
+
+    /* ── API Key result ─────────────────────────── */
+    .api-key-result {
+      display: none;
+      margin-top: 28px;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .api-key-result.show { display: block; }
+
+    .api-key-warning {
+      background: rgba(240,192,64,0.08);
+      border: 1px solid rgba(240,192,64,0.25);
+      border-bottom: none;
+      border-radius: 10px 10px 0 0;
+      padding: 12px 16px;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: 13px;
+    }
+
+    .warning-icon { font-size: 15px; flex-shrink: 0; margin-top: 1px; }
+
+    .warning-text { color: #c9a227; line-height: 1.5; }
+    .warning-text strong { color: var(--yellow); display: block; margin-bottom: 2px; }
+
+    .api-key-box {
+      background: var(--surface2);
+      border: 1px solid rgba(240,192,64,0.25);
+      border-top: none;
+      border-radius: 0 0 10px 10px;
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .api-key-value {
+      flex: 1;
+      font-family: 'SFMono-Regular', 'Consolas', 'Liberation Mono', monospace;
+      font-size: 13px;
+      color: var(--green);
+      letter-spacing: 0.5px;
+      word-break: break-all;
+    }
+
+    .copy-btn {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--muted);
+      font-size: 12px;
+      padding: 6px 12px;
+      cursor: pointer;
+      transition: all 0.15s;
+      white-space: nowrap;
+      flex-shrink: 0;
+      font-family: var(--font);
+    }
+    .copy-btn:hover { color: var(--text); border-color: var(--border2); }
+    .copy-btn.copied { color: var(--green); border-color: rgba(52,208,88,0.4); }
+
+    .success-banner {
+      background: rgba(52,208,88,0.08);
+      border: 1px solid rgba(52,208,88,0.2);
+      border-radius: 8px;
+      padding: 12px 16px;
+      color: #34d058;
+      font-size: 13px;
+      margin-bottom: 16px;
+      display: none;
+    }
+    .success-banner.show { display: flex; align-items: center; gap: 10px; }
+
+    /* ── Footer ────────────────────────────────── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 28px 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .footer-brand {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--muted);
+      letter-spacing: -0.2px;
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 20px;
+    }
+
+    .footer-links a {
+      font-size: 12px;
+      color: var(--muted);
+      text-decoration: none;
+      transition: color 0.15s;
+    }
+    .footer-links a:hover { color: var(--text); }
+
+    @media (max-width: 500px) {
+      footer { flex-direction: column; text-align: center; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Header ─────────────────────────────────── -->
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <div class="brand-name">
+        <span class="brand-dot"></span>
+        Gbeye
+      </div>
+      <div class="brand-tagline">Event Trust Infrastructure</div>
+    </div>
+    <a href="#register" class="nav-link">Get API Key →</a>
+  </header>
+</div>
+
+<!-- ── Hero ───────────────────────────────────── -->
+<section class="hero">
+  <div class="wrap">
+    <div class="hero-eyebrow">
+      <span class="hero-eyebrow-dot"></span>
+      Tamper-proof · Signed · Always on
+    </div>
+    <h1>If it happened,<br /><em>Gbeye can prove it.</em></h1>
+    <p class="hero-sub">Securing security.</p>
+    <a href="#register" class="hero-cta">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+        <path d="M8 1.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-3.5a.75.75 0 0 1 .75.75v3.19l2.03 2.03a.75.75 0 1 1-1.06 1.06L7.47 9.28A.75.75 0 0 1 7.25 8.73V5.25A.75.75 0 0 1 8 4.5Z" fill="currentColor"/>
+      </svg>
+      Connect Your Service
+    </a>
+  </div>
+</section>
+
+<hr class="divider" />
+
+<!-- ── Features ────────────────────────────────── -->
+<section class="features">
+  <div class="wrap">
+    <div class="features-header">
+      <div class="section-label">How it works</div>
+      <h2>Built for events you can't afford to lose.</h2>
+    </div>
+
+    <div class="accordion">
+
+      <div class="accordion-item open" id="acc-witness">
+        <button class="accordion-trigger" onclick="toggleAccordion('acc-witness')" aria-expanded="true">
+          <div class="accordion-left">
+            <div class="accordion-icon icon-witness">👁️</div>
+            <div>
+              <div class="accordion-num">01</div>
+              <div class="accordion-title">Witness</div>
+            </div>
+          </div>
+          <svg class="accordion-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="6 9 12 15 18 9"/>
+          </svg>
+        </button>
+        <div class="accordion-body">
+          <div class="accordion-content">
+            <p>Every event recorded the moment it happens — with zero latency between occurrence and inscription. No buffering, no batching, no delay.</p>
+            <p>Your service emits an event. Gbeye receives it, timestamps it server-side, and persists it instantly. The record exists before your response returns. <span class="tag">status: received</span></p>
+          </div>
+        </div>
+      </div>
+
+      <div class="accordion-item" id="acc-sign">
+        <button class="accordion-trigger" onclick="toggleAccordion('acc-sign')" aria-expanded="false">
+          <div class="accordion-left">
+            <div class="accordion-icon icon-sign">🔏</div>
+            <div>
+              <div class="accordion-num">02</div>
+              <div class="accordion-title">Sign</div>
+            </div>
+          </div>
+          <svg class="accordion-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="6 9 12 15 18 9"/>
+          </svg>
+        </button>
+        <div class="accordion-body">
+          <div class="accordion-content">
+            <p>Cryptographic proof attached to every event. Each payload is signed with <span class="tag">HMAC-SHA256</span> at ingestion time, producing a unique fingerprint that cannot be forged or replicated without the original secret.</p>
+            <p>If the payload ever changes — even one character — the signature fails. Gbeye detects tampering so you don't have to.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="accordion-item" id="acc-remember">
+        <button class="accordion-trigger" onclick="toggleAccordion('acc-remember')" aria-expanded="false">
+          <div class="accordion-left">
+            <div class="accordion-icon icon-remember">📡</div>
+            <div>
+              <div class="accordion-num">03</div>
+              <div class="accordion-title">Remember</div>
+            </div>
+          </div>
+          <svg class="accordion-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="6 9 12 15 18 9"/>
+          </svg>
+        </button>
+        <div class="accordion-body">
+          <div class="accordion-content">
+            <p>Permanent history, visualized in real time. Query anytime from anywhere. Filter by actor, event type, status, or date range. Paginate through your entire event log without losing context.</p>
+            <p>Your events never expire. Access the analytics dashboard to see breakdowns, timelines, and a live feed of everything that has ever happened inside your service.</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<hr class="divider" />
+
+<!-- ── Registration ─────────────────────────────── -->
+<section class="register" id="register">
+  <div class="wrap">
+    <div class="register-card">
+
+      <div class="section-label">Self-service</div>
+      <h2>Connect your service to Gbeye</h2>
+      <p>Get an API key in seconds. Start logging signed events immediately — no setup, no SDK required.</p>
+
+      <div class="success-banner" id="success-banner">
+        <span>✓</span>
+        <span id="success-text"></span>
+      </div>
+
+      <form id="register-form" onsubmit="handleRegister(event)" novalidate>
+        <div class="form-grid">
+          <div class="field">
+            <label for="f-name">Service Name</label>
+            <input id="f-name" type="text" placeholder="e.g. Ipoki" required autocomplete="off" />
+          </div>
+          <div class="field">
+            <label for="f-email">Email</label>
+            <input id="f-email" type="email" placeholder="you@yourservice.com" required />
+          </div>
+          <div class="field field-full">
+            <label for="f-prefix">Event Prefix <span style="color:#3a4d66;font-weight:400;text-transform:none;letter-spacing:0">(optional — e.g. IPK)</span></label>
+            <input id="f-prefix" type="text" placeholder="IPK" maxlength="20" />
+          </div>
+        </div>
+
+        <div class="form-error" id="form-error"></div>
+
+        <button type="submit" class="submit-btn" id="submit-btn">
+          <div class="spinner"></div>
+          <span class="btn-text">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:-3px;margin-right:6px"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+            Connect to Gbeye
+          </span>
+        </button>
+      </form>
+
+      <div class="api-key-result" id="api-key-result">
+        <div class="api-key-warning">
+          <span class="warning-icon">⚠️</span>
+          <div class="warning-text">
+            <strong>Save your API key now — it will never be shown again.</strong>
+            Copy it somewhere safe before closing this page. This key authenticates all requests from your service to Gbeye.
+          </div>
+        </div>
+        <div class="api-key-box">
+          <span class="api-key-value" id="api-key-display"></span>
+          <button class="copy-btn" id="copy-btn" onclick="copyKey()">Copy</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ── Footer ─────────────────────────────────── -->
+<div class="wrap">
+  <footer>
+    <div class="footer-brand">Gbeye</div>
+    <div class="footer-links">
+      <a href="/dashboard.html">Dashboard</a>
+      <a href="/health">Health</a>
+    </div>
+  </footer>
+</div>
+
+<script>
+  // ── Accordion ────────────────────────────────
+  function toggleAccordion(id) {
+    const item = document.getElementById(id);
+    const isOpen = item.classList.contains('open');
+    document.querySelectorAll('.accordion-item').forEach(i => {
+      i.classList.remove('open');
+      i.querySelector('.accordion-trigger').setAttribute('aria-expanded', 'false');
+    });
+    if (!isOpen) {
+      item.classList.add('open');
+      item.querySelector('.accordion-trigger').setAttribute('aria-expanded', 'true');
+    }
+  }
+
+  // ── Registration ─────────────────────────────
+  async function handleRegister(e) {
+    e.preventDefault();
+
+    const name   = document.getElementById('f-name').value.trim();
+    const email  = document.getElementById('f-email').value.trim();
+    const prefix = document.getElementById('f-prefix').value.trim();
+    const errEl  = document.getElementById('form-error');
+    const btn    = document.getElementById('submit-btn');
+
+    errEl.classList.remove('show');
+    errEl.textContent = '';
+
+    if (!name)  { showError('Service name is required.'); return; }
+    if (!email) { showError('Email is required.'); return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showError('Please enter a valid email address.'); return; }
+
+    btn.classList.add('loading');
+    btn.disabled = true;
+
+    try {
+      const res = await fetch('/apps/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ app_name: name, owner_email: email, event_prefix: prefix }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        showError(data.message || data.error || 'Registration failed. Please try again.');
+        return;
+      }
+
+      document.getElementById('register-form').style.display = 'none';
+      document.getElementById('success-text').textContent =
+        `${data.app_name} is now connected to Gbeye.`;
+      document.getElementById('success-banner').classList.add('show');
+      document.getElementById('api-key-display').textContent = data.api_key;
+      document.getElementById('api-key-result').classList.add('show');
+
+    } catch {
+      showError('Could not reach the server. Please try again.');
+    } finally {
+      btn.classList.remove('loading');
+      btn.disabled = false;
+    }
+  }
+
+  function showError(msg) {
+    const el = document.getElementById('form-error');
+    el.textContent = msg;
+    el.classList.add('show');
+  }
+
+  function copyKey() {
+    const key = document.getElementById('api-key-display').textContent;
+    const btn = document.getElementById('copy-btn');
+    navigator.clipboard.writeText(key).then(() => {
+      btn.textContent = 'Copied!';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
+    });
+  }
+</script>
+
+</body>
+</html>
